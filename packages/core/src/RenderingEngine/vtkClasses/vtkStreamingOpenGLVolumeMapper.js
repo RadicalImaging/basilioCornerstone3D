@@ -255,7 +255,9 @@ function vtkStreamingOpenGLVolumeMapper(publicAPI, model) {
 
     // // [WMVP]C == {world, model, view, projection} coordinates
     // // E.g., WCPC == world to projection coordinate transformation
+    cam.setIsPerformingCoordinateTransformation(true);
     const keyMats = model.openGLCamera.getKeyMatrices(ren);
+    cam.setIsPerformingCoordinateTransformation(false);
     const actMats = model.openGLVolume.getKeyMatrices();
     mat4.multiply(model.modelToView, keyMats.wcvc, actMats.mcwc);
 
@@ -416,91 +418,31 @@ function vtkStreamingOpenGLVolumeMapper(publicAPI, model) {
 
         program.setUniformMatrix('vWCtoIDX', worldToIndex);
 
-        const camera = ren.getActiveCamera();
-        const [cRange0, cRange1] = camera.getClippingRange();
-        const distance = camera.getDistance();
-
-        // set the clipping range to be model.distance and model.distance + 0.1
-        // since we use the in the keyMats.wcpc (world to projection) matrix
-        // the projection matrix calculation relies on the clipping range to be
-        // set correctly. This is done inside the interactorStyleMPRSlice which
-        // limits use cases where the interactor style is not used.
-
-        camera.setClippingRange(distance, distance + 0.1);
-        const labelOutlineKeyMats = model.openGLCamera.getKeyMatrices(ren);
-
         // Get the projection coordinate to world coordinate transformation matrix.
-        mat4.invert(model.projectionToWorld, labelOutlineKeyMats.wcpc);
-
-        // reset the clipping range since the keyMats are cached
-        camera.setClippingRange(cRange0, cRange1);
-
-        // to re compute the matrices for the current camera and cache them
-        model.openGLCamera.getKeyMatrices(ren);
-
+        mat4.invert(model.projectionToWorld, keyMats.wcpc);
         program.setUniformMatrix('PCWCMatrix', model.projectionToWorld);
 
         const size = publicAPI.getRenderTargetSize();
+        const offset = publicAPI.getRenderTargetOffset();
+
         program.setUniformf('vpWidth', size[0]);
         program.setUniformf('vpHeight', size[1]);
-        const offset = publicAPI.getRenderTargetOffset();
+
+        // TODO: You need to use the fix/labelMapOutline branch or these
+        // won't be consumed by the shader
         program.setUniformf('vpOffsetX', offset[0] / size[0]);
         program.setUniformf('vpOffsetY', offset[1] / size[1]);
       }
     }
 
     mat4.invert(model.projectionToView, keyMats.vcpc);
+    model.projectionToView[10] = model.projectionToView[14];
     program.setUniformMatrix('PCVCMatrix', model.projectionToView);
 
     // handle lighting values
-    // if (model.lastLightComplexity === 0) {
-    //   return;
-    // }
-
-    switch (model.lastLightComplexity) {
-      default:
-      case 0: // no lighting, tcolor is fine as is
-        break;
-
-      case 1: // headlight
-      case 2: // light kit
-      case 3: {
-        // positional not implemented fallback to directional
-        // mat3.transpose(keyMats.normalMatrix, keyMats.normalMatrix);
-        let lightNum = 0;
-        const lightColor = [];
-        ren.getLights().forEach((light) => {
-          const status = light.getSwitch();
-          if (status > 0) {
-            const dColor = light.getColor();
-            const intensity = light.getIntensity();
-            lightColor[0] = dColor[0] * intensity;
-            lightColor[1] = dColor[1] * intensity;
-            lightColor[2] = dColor[2] * intensity;
-            program.setUniform3fArray(`lightColor${lightNum}`, lightColor);
-            const ldir = light.getDirection();
-            vec3.set(normal, ldir[0], ldir[1], ldir[2]);
-            vec3.transformMat3(normal, normal, keyMats.normalMatrix);
-            program.setUniform3f(
-              `lightDirectionVC${lightNum}`,
-              normal[0],
-              normal[1],
-              normal[2]
-            );
-            // camera DOP is 0,0,-1.0 in VC
-            const halfAngle = [
-              -0.5 * normal[0],
-              -0.5 * normal[1],
-              -0.5 * (normal[2] - 1.0),
-            ];
-            program.setUniform3fArray(`lightHalfAngleVC${lightNum}`, halfAngle);
-            lightNum++;
-          }
-        });
-        // mat3.transpose(keyMats.normalMatrix, keyMats.normalMatrix);
-      }
+    if (model.lastLightComplexity === 0) {
+      return;
     }
-    return;
 
     let lightNum = 0;
     const lightColor = [];
@@ -565,6 +507,7 @@ function vtkStreamingOpenGLVolumeMapper(publicAPI, model) {
       program.setUniformfv('lightExponent', lightExponent);
       program.setUniformiv('lightPositional', lightPositional);
     }
+
     if (model.renderable.getVolumetricScatteringBlending() > 0.0) {
       program.setUniformf(
         'giReach',
@@ -584,6 +527,7 @@ function vtkStreamingOpenGLVolumeMapper(publicAPI, model) {
         model.renderable.getAnisotropy() ** 2.0
       );
     }
+
     if (
       model.renderable.getVolumetricScatteringBlending() === 0.0 &&
       model.renderable.getLocalAmbientOcclusion() &&
