@@ -154,6 +154,7 @@ async function run() {
       type: ViewportType.VOLUME_3D,
       element: element1,
       defaultOptions: {
+        parallelProjection: false,
         orientation: Enums.OrientationAxis.SAGITTAL,
         background: <Types.Point3>[0.2, 0, 0.2],
       },
