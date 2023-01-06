@@ -130,6 +130,20 @@ enum Events {
    */
   VOLUME_CACHE_VOLUME_REMOVED = 'CORNERSTONE_VOLUME_CACHE_VOLUME_REMOVED',
   /**
+   * Triggers on the eventTarget when a contour is added to the contour cache
+   *
+   * Make use of {@link EventTypes.ContourCacheContourAddedEvent | ContourCacheAdded Event Type } for typing your event listeners for CONTOUR_CACHE_ADDED event,
+   * and see what event detail is included in {@link EventTypes.ContourCacheContourAddedEventDetail | ContourCacheAdded Event Detail }
+   */
+  CONTOUR_CACHE_CONTOUR_ADDED = 'CORNERSTONE_CONTOUR_CACHE_CONTOUR_ADDED',
+  /**
+   * Triggers on the eventTarget when a volume is removed from the volume cache
+   *
+   * Make use of {@link EventTypes.ContourCacheContourRemovedEvent | ContourCacheRemoved Event Type } for typing your event listeners for CONTOUR_CACHE_REMOVED event,
+   * and see what event detail is included in {@link EventTypes.ContourCacheContourRemovedEventDetail | ContourCacheRemoved Event Detail }
+   */
+  CONTOUR_CACHE_CONTOUR_REMOVED = 'CORNERSTONE_CONTOUR_CACHE_CONTOUR_REMOVED',
+  /**
    * Triggers on the element when a new image is set on the stackViewport
    *
    * Make use of {@link EventTypes.StackNewImageEvent | StackNewImage Event Type } for typing your event listeners for STACK_NEW_IMAGE event,

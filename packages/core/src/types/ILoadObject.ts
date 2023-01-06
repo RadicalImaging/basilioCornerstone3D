@@ -1,5 +1,6 @@
 import { ImageVolume } from './../cache/classes/ImageVolume';
 import IImage from './IImage';
+import IContour from './IContour';
 
 /**
  * ImageLoadObject interface which any imageLoader should return
@@ -19,6 +20,15 @@ export interface IImageLoadObject {
 export interface IVolumeLoadObject {
   /** promise that resolves to an ImageVolume */
   promise: Promise<ImageVolume>;
+  /** optional cancel function for loading*/
+  cancelFn?: () => void;
+  /** optional decache function */
+  decache?: () => void;
+}
+
+export interface IContourLoadObject {
+  /** promise that resolves to an ImageVolume */
+  promise: Promise<IContour>;
   /** optional cancel function for loading*/
   cancelFn?: () => void;
   /** optional decache function */

@@ -3166,7 +3166,7 @@
 
 "@kitware/vtk.js@25.15.0":
   version "25.15.0"
-  resolved "https://registry.npmjs.org/@kitware/vtk.js/-/vtk.js-25.15.0.tgz#ffe05867530a274c2a07169fd44845b87cc5398d"
+  resolved "https://registry.yarnpkg.com/@kitware/vtk.js/-/vtk.js-25.15.0.tgz#ffe05867530a274c2a07169fd44845b87cc5398d"
   integrity sha512-qMhM/VJ6vC2gOrHEx4EbNb5IfsHdNRJC4tszhGWRAVxK1i+tFWou3mnvEc/oWdG4hEvssOarl8M2bLBHPUaxgw==
   dependencies:
     "@babel/runtime" "7.17.9"

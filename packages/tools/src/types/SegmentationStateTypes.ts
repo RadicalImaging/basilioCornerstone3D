@@ -2,6 +2,7 @@ import * as Enums from '../enums';
 import type {
   LabelmapConfig,
   LabelmapSegmentationData,
+  ContourSegmentationData,
   LabelmapRenderingConfig,
 } from './LabelmapTypes';
 

@@ -8,6 +8,7 @@ import * as state from './segmentationState';
 import * as config from './config';
 import * as segmentIndex from './segmentIndex';
 import * as triggerSegmentationEvents from './triggerSegmentationEvents';
+import { createPolyData } from './helpers';
 
 export {
   state,
@@ -19,4 +20,5 @@ export {
   config,
   segmentIndex,
   triggerSegmentationEvents,
+  createPolyData,
 };

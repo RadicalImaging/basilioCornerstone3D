@@ -30,7 +30,6 @@ import vtkGenericRenderWindow from '@kitware/vtk.js/Rendering/Misc/GenericRender
 import vtkClipClosedSurface from '@kitware/vtk.js/Filters/General/ClipClosedSurface';
 import vtkLookupTable from '@kitware/vtk.js/Common/Core/LookupTable';
 import vtkDataArray from '@kitware/vtk.js/Common/Core/DataArray';
-//import controlPanel from './controller.text';
 
 const lineThickness = 4;
 const generateOutline = true;

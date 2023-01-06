@@ -39,3 +39,8 @@ export type LabelmapSegmentationData = {
   volumeId: string;
   referencedVolumeId?: string;
 };
+
+export type ContourSegmentationData = {
+  contourId: string;
+  referencedVolumeId?: string;
+};

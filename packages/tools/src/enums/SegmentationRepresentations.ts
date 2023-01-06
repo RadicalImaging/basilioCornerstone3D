@@ -5,6 +5,8 @@
  */
 enum SegmentationRepresentations {
   Labelmap = 'LABELMAP',
+  Surface = 'SURFACE',
+  Contour = 'CONTOUR',
   // Todo: add more representations
 }
 

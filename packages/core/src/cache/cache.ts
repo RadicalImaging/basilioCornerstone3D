@@ -2,10 +2,13 @@ import {
   ICache,
   IImage,
   IImageVolume,
+  IContour,
   IImageLoadObject,
   IVolumeLoadObject,
+  IContourLoadObject,
   ICachedImage,
   ICachedVolume,
+  ICachedContour,
   EventTypes,
 } from '../types';
 import { triggerEvent, imageIdToURI } from '../utilities';
@@ -17,15 +20,19 @@ const MAX_CACHE_SIZE_1GB = 1073741824;
 class Cache implements ICache {
   private readonly _imageCache: Map<string, ICachedImage>; // volatile space
   private readonly _volumeCache: Map<string, ICachedVolume>; // non-volatile space
+  private readonly _contourCache: Map<string, ICachedContour>; // non-volatile space
   private _imageCacheSize: number;
   private _volumeCacheSize: number;
+  private _contourCacheSize: number;
   private _maxCacheSize: number;
 
   constructor() {
     this._imageCache = new Map();
     this._volumeCache = new Map();
+    this._contourCache = new Map();
     this._imageCacheSize = 0;
     this._volumeCacheSize = 0;
+    this._contourCacheSize = 0;
     this._maxCacheSize = MAX_CACHE_SIZE_1GB; // Default 1GB
   }
 
@@ -110,6 +117,26 @@ class Cache implements ICache {
   };
 
   /**
+   * Deletes the imageId from the image cache
+   *
+   * @param imageId - imageId
+   *
+   */
+  private _decacheContour = (contourId: string) => {
+    const { contourLoadObject } = this._contourCache.get(contourId);
+
+    // Cancel any in-progress loading
+    if (contourLoadObject.cancelFn) {
+      contourLoadObject.cancelFn();
+    }
+
+    if (contourLoadObject.decache) {
+      contourLoadObject.decache();
+    }
+
+    this._imageCache.delete(contourId);
+  };
+  /**
    * Deletes the volumeId from the volume cache
    *
    * @param volumeId - volumeId
@@ -166,6 +193,7 @@ class Cache implements ICache {
     }
 
     this.purgeVolumeCache();
+    this.purgeContourCache();
   };
 
   /**
@@ -186,6 +214,28 @@ class Cache implements ICache {
 
       triggerEvent(eventTarget, Events.VOLUME_CACHE_VOLUME_REMOVED, {
         volumeId,
+      });
+    }
+  };
+
+  /**
+   * Deletes all the contours in the cache
+   */
+  public purgeContourCache = (): void => {
+    const contourIterator = this._contourCache.keys();
+
+    /* eslint-disable no-constant-condition */
+    while (true) {
+      const { value: contourId, done } = contourIterator.next();
+
+      if (done) {
+        break;
+      }
+
+      this.removeContourLoadObject(contourId);
+
+      triggerEvent(eventTarget, Events.VOLUME_CACHE_VOLUME_REMOVED, {
+        contourId,
       });
     }
   };
@@ -639,6 +689,165 @@ class Cache implements ICache {
     return cachedVolume.volume;
   };
 
+  public addContour(contourId: string, contourData, sizeInBytes: number) {
+    const contour: IContour = {
+      contourId,
+      contourData,
+      sizeInBytes,
+    };
+    const contourLoadObject = {
+      promise: Promise.resolve(contour),
+    };
+
+    this.putContourLoadObject(contourId, contourLoadObject);
+  }
+
+  /**
+   * Puts a new contour load object into the cache
+   *
+   * First, it creates a CachedContour object and put it inside the contourCache for
+   * the contourId. After the contourLoadObject promise resolves to a contour,
+   * it: 1) adds the volume into the correct CachedContour object inside contourCache
+   * 2) increments the cache size, 3) triggers CONTOUR_CACHE_CONTOUR_ADDED  4) Purge
+   * the cache if necessary -- if the cache size is greater than the maximum cache size, it
+   * iterates over the imageCache (not contourCache) and decache them one by one
+   * until the cache size becomes less than the maximum allowed cache size
+   *
+   * @fires Events.CONTOUR_CACHE_CONTOUR_ADDED
+   *
+   * @param contourId - volumeId of the volume
+   * @param contourLoadObject - The object that is loading or loaded the volume
+   */
+  public putContourLoadObject(
+    contourId: string,
+    contourLoadObject: IContourLoadObject
+  ): Promise<any> {
+    if (contourId === undefined) {
+      throw new Error('putVolumeLoadObject: contourId must not be undefined');
+    }
+    if (contourLoadObject.promise === undefined) {
+      throw new Error(
+        'putVolumeLoadObject: volumeLoadObject.promise must not be undefined'
+      );
+    }
+    if (this._contourCache.has(contourId)) {
+      throw new Error(
+        `putContourLoadObject: contourId:${contourId} already in cache`
+      );
+    }
+    if (
+      contourLoadObject.cancelFn &&
+      typeof contourLoadObject.cancelFn !== 'function'
+    ) {
+      throw new Error(
+        'putContourLoadObject: contourLoadObject.cancel must be a function'
+      );
+    }
+
+    // todo: @Erik there are two loaded flags, one inside cachedVolume and the other
+    // inside the volume.loadStatus.loaded, the actual all pixelData loaded is the
+    // loadStatus one. This causes confusion
+    const cachedContour: ICachedContour = {
+      loaded: false,
+      contourId,
+      contourLoadObject,
+      timeStamp: Date.now(),
+      sizeInBytes: 0,
+    };
+
+    this._contourCache.set(contourId, cachedContour);
+
+    return contourLoadObject.promise
+      .then((contour: IContour) => {
+        if (!this._contourCache.get(contourId)) {
+          // If the image has been purged before being loaded, we stop here.
+          console.warn(
+            'The image was purged from the cache before it completed loading.'
+          );
+          return;
+        }
+
+        if (contour.sizeInBytes === undefined) {
+          throw new Error(
+            'putContourLoadObject: contour.sizeInBytes must not be undefined'
+          );
+        }
+        if (contour.sizeInBytes.toFixed === undefined) {
+          throw new Error(
+            'putContourLoadObject: contour.sizeInBytes is not a number'
+          );
+        }
+
+        // this.isCacheable is called at the volume loader, before requesting
+        // the images of the volume
+
+        this.decacheIfNecessaryUntilBytesAvailable(contour.sizeInBytes, []);
+
+        // cachedVolume.loaded = true
+        cachedContour.contour = contour;
+        cachedContour.sizeInBytes = contour.sizeInBytes;
+        this._incrementVolumeCacheSize(cachedContour.sizeInBytes);
+
+        const eventDetails: EventTypes.ContourCacheContourAddedEventDetail = {
+          contour: cachedContour,
+        };
+
+        triggerEvent(
+          eventTarget,
+          Events.CONTOUR_CACHE_CONTOUR_ADDED,
+          eventDetails
+        );
+      })
+      .catch((error) => {
+        this._contourCache.delete(contourId);
+        throw error;
+      });
+  }
+
+  /**
+   * Returns the object that is loading a given contourId
+   *
+   * @param contourId - Contour ID
+   * @returns IContourLoadObject
+   */
+  public getContourLoadObject = (contourId: string): IContourLoadObject => {
+    if (contourId === undefined) {
+      throw new Error('getContourLoadObject: contourId must not be undefined');
+    }
+    const cachedContour = this._contourCache.get(contourId);
+
+    if (cachedContour === undefined) {
+      return;
+    }
+
+    // Bump time stamp for cached volume (not used for anything for now)
+    cachedContour.timeStamp = Date.now();
+
+    return cachedContour.contourLoadObject;
+  };
+
+  /**
+   * Returns the contour associated with the contourId
+   *
+   * @param contourId - Contour ID
+   * @returns Contour
+   */
+  public getContour = (contourId: string): IContour => {
+    if (contourId === undefined) {
+      throw new Error('getContour: contourId must not be undefined');
+    }
+    const cachedContour = this._contourCache.get(contourId);
+
+    if (cachedContour === undefined) {
+      return;
+    }
+
+    // Bump time stamp for cached volume (not used for anything for now)
+    cachedContour.timeStamp = Date.now();
+
+    return cachedContour.contour;
+  };
+
   /**
    * Removes the image loader associated with a given Id from the cache
    *
@@ -703,6 +912,44 @@ class Cache implements ICache {
   };
 
   /**
+   * Removes the contour loader associated with a given Id from the cache
+   *
+   * It increases the cache size after removing the contour.
+   *
+   * @fires Events.CONTOUR_CACHE_CONTOUR_REMOVED
+   *
+   * @param imageId - ImageId
+   */
+  public removeContourLoadObject = (contourId: string): void => {
+    if (contourId === undefined) {
+      throw new Error(
+        'removeContourLoadObject: contourId must not be undefined'
+      );
+    }
+    const cachedContour = this._contourCache.get(contourId);
+
+    if (cachedContour === undefined) {
+      throw new Error(
+        'removeContourLoadObject: contourId was not present in contourCache'
+      );
+    }
+
+    this._incrementContourCacheSize(-cachedContour.sizeInBytes);
+
+    const eventDetails = {
+      contour: cachedContour,
+      contourId,
+    };
+
+    triggerEvent(
+      eventTarget,
+      Events.CONTOUR_CACHE_CONTOUR_REMOVED,
+      eventDetails
+    );
+    this._decacheContour(contourId);
+  };
+
+  /**
    * Increases the image cache size with the provided increment
    *
    * @param increment - bytes length
@@ -718,6 +965,15 @@ class Cache implements ICache {
    */
   private _incrementVolumeCacheSize = (increment: number) => {
     this._volumeCacheSize += increment;
+  };
+
+  /**
+   * Increases the cache size with the provided increment
+   *
+   * @param increment - bytes length
+   */
+  private _incrementContourCacheSize = (increment: number) => {
+    this._contourCacheSize += increment;
   };
 }
 

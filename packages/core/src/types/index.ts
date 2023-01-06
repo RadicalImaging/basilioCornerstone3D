@@ -13,7 +13,11 @@ import type IStreamingVolumeProperties from './IStreamingVolumeProperties';
 import type CustomEventType from './CustomEventType';
 import type { IViewport, PublicViewportInput } from './IViewport';
 import type { VolumeActor, Actor, ActorEntry } from './IActor';
-import type { IImageLoadObject, IVolumeLoadObject } from './ILoadObject';
+import type {
+  IImageLoadObject,
+  IVolumeLoadObject,
+  IContourLoadObject,
+} from './ILoadObject';
 import type Metadata from './Metadata';
 import type OrientationVectors from './OrientationVectors';
 import type Point2 from './Point2';
@@ -27,6 +31,7 @@ import type IImageData from './IImageData';
 import type CPUIImageData from './CPUIImageData';
 import type { CPUImageData } from './CPUIImageData';
 import type IImage from './IImage';
+import type IContour from './IContour';
 import type {
   PTScaling,
   Scaling,
@@ -38,6 +43,7 @@ import type IViewportId from './IViewportId';
 import type FlipDirection from './FlipDirection';
 import type ICachedImage from './ICachedImage';
 import type ICachedVolume from './ICachedVolume';
+import type ICachedContour from './ICachedContour';
 import type IStackViewport from './IStackViewport';
 import type IVolumeViewport from './IVolumeViewport';
 import type ViewportPreset from './ViewportPreset';
@@ -75,6 +81,7 @@ export type {
   Scaling,
   IStreamingImageVolume,
   IImage,
+  IContour,
   IImageData,
   CPUIImageData,
   CPUImageData,
@@ -92,6 +99,7 @@ export type {
   ActorEntry,
   IImageLoadObject,
   IVolumeLoadObject,
+  IContourLoadObject,
   IVolumeInput,
   VolumeInputCallback,
   ViewportPreset,
@@ -109,6 +117,7 @@ export type {
   FlipDirection,
   ICachedImage,
   ICachedVolume,
+  ICachedContour,
   // CPU fallback types
   CPUFallbackEnabledElement,
   CPUFallbackViewport,

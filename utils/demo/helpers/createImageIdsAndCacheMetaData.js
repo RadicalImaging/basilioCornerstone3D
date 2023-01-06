@@ -82,6 +82,8 @@ export default async function createImageIdsAndCacheMetaData({
           pixelSpacing.map((s) => parseFloat(s))
         );
       }
+
+      return imageId;
     }
   });
 

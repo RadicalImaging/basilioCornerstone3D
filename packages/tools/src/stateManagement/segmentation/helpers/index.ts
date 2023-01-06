@@ -1,3 +1,3 @@
 import validateSegmentationInput from './validateSegmentationInput';
-
-export { validateSegmentationInput };
+import createPolyData from './createPolyData';
+export { validateSegmentationInput, createPolyData };

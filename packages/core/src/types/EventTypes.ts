@@ -3,6 +3,7 @@ import type { vtkImageData } from '@kitware/vtk.js/Common/DataModel/ImageData';
 import type CustomEventType from '../types/CustomEventType';
 import type ICachedImage from './ICachedImage';
 import type ICachedVolume from './ICachedVolume';
+import type ICachedContour from './ICachedContour';
 import type ICamera from './ICamera';
 import type IImage from './IImage';
 import type IImageVolume from './IImageVolume';
@@ -149,6 +150,22 @@ type VolumeCacheVolumeRemovedEventDetail = {
 type VolumeCacheVolumeAddedEventDetail = {
   /** the added volume */
   volume: ICachedVolume;
+};
+
+/**
+ * CONTOUR_CACHE_CONTOUR_REMOVED Event's data
+ */
+type ContourCacheContourRemovedEventDetail = {
+  /** the removed contour id */
+  contourId: string;
+};
+
+/**
+ * CONTOUR_CACHE_CONTOUR_ADDED Event's data
+ */
+type ContourCacheContourAddedEventDetail = {
+  /** the added contour */
+  contour: ICachedContour;
 };
 
 /**
@@ -322,6 +339,18 @@ type VolumeCacheVolumeRemovedEvent =
   CustomEventType<VolumeCacheVolumeRemovedEventDetail>;
 
 /**
+ * CONTOUR_CACHE_CONTOUR_ADDED Event type
+ */
+type ContourCacheContourAddedEvent =
+  CustomEventType<ContourCacheContourAddedEventDetail>;
+
+/**
+ * CONTOUR_CACHE_CONTOUR_REMOVED Event type
+ */
+type ContourCacheContourRemovedEvent =
+  CustomEventType<ContourCacheContourRemovedEventDetail>;
+
+/**
  * START_NEW_IMAGE
  */
 type StackNewImageEvent = CustomEventType<StackNewImageEventDetail>;
@@ -384,6 +413,10 @@ export type {
   VolumeCacheVolumeAddedEventDetail,
   VolumeCacheVolumeRemovedEvent,
   VolumeCacheVolumeRemovedEventDetail,
+  ContourCacheContourAddedEvent,
+  ContourCacheContourAddedEventDetail,
+  ContourCacheContourRemovedEvent,
+  ContourCacheContourRemovedEventDetail,
   StackNewImageEvent,
   StackNewImageEventDetail,
   PreStackNewImageEvent,
