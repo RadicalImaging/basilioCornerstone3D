@@ -16,8 +16,6 @@ import {
 } from '../../../../utils/demo/helpers';
 import * as cornerstoneTools from '@cornerstonejs/tools';
 
-import vtkPolyData from '@kitware/vtk.js/Common/DataModel/PolyData';
-import vtkCellArray from '@kitware/vtk.js/Common/Core/CellArray';
 import vtkPlane from '@kitware/vtk.js/Common/DataModel/Plane';
 
 import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
@@ -31,6 +29,7 @@ import vtkClipClosedSurface from '@kitware/vtk.js/Filters/General/ClipClosedSurf
 import vtkLookupTable from '@kitware/vtk.js/Common/Core/LookupTable';
 import vtkDataArray from '@kitware/vtk.js/Common/Core/DataArray';
 
+import { createPolyData, createPolyDataActors } from './createActors';
 const lineThickness = 4;
 const generateOutline = true;
 const generateFaces = false;
@@ -265,71 +264,6 @@ function getReferenceLineSlabThicknessControlsOn(viewportId) {
   return index !== -1;
 }
 
-function createPolyData(roiData, addClippingPlanes = false) {
-  const pointList = roiData.pointsList;
-  const polygon = vtkPolyData.newInstance();
-  const pointArray = [];
-  let index = 0;
-
-  const lines = vtkCellArray.newInstance();
-
-  for (let i = 0; i < pointList.length; i++) {
-    const points = pointList[i].points;
-    const lineArray = [];
-    for (let j = 0; j < points.length; j++) {
-      pointArray.push(points[j].x);
-      pointArray.push(points[j].y);
-      pointArray.push(points[j].z);
-
-      lineArray.push(index + j);
-    }
-    // Uniting the last point with the first
-    lineArray.push(index);
-    lines.insertNextCell(lineArray);
-    index = index + points.length;
-  }
-  polygon.getPoints().setData(Float32Array.from(pointArray), 3);
-  polygon.setLines(lines);
-
-  const mapper = vtkMapper.newInstance();
-  mapper.setInputData(polygon);
-
-  if (addClippingPlanes) {
-    const clipPlane1 = vtkPlane.newInstance();
-    const clipPlane2 = vtkPlane.newInstance();
-    let clipPlane1Position = 0;
-    let clipPlane2Position = 0;
-    const clipPlane1Normal = [-1, 1, 0];
-    const clipPlane2Normal = [0, 0, 1];
-
-    const sizeX = 0;
-    const sizeY = 10;
-    clipPlane1Position = sizeX / 4;
-    clipPlane2Position = sizeY / 2;
-    const clipPlane1Origin = [
-      clipPlane1Position * clipPlane1Normal[0],
-      clipPlane1Position * clipPlane1Normal[1],
-      clipPlane1Position * clipPlane1Normal[2],
-    ];
-    const clipPlane2Origin = [
-      clipPlane2Position * clipPlane2Normal[0],
-      clipPlane2Position * clipPlane2Normal[1],
-      clipPlane2Position * clipPlane2Normal[2],
-    ];
-
-    clipPlane1.setNormal(clipPlane1Normal);
-    clipPlane1.setOrigin(clipPlane1Origin);
-    clipPlane2.setNormal(clipPlane2Normal);
-    clipPlane2.setOrigin(clipPlane2Origin);
-    mapper.addClippingPlane(clipPlane1);
-    mapper.addClippingPlane(clipPlane2);
-  }
-
-  const actor = vtkActor.newInstance();
-  actor.setMapper(mapper);
-  return actor;
-}
-
 function getSphereActor({
   center,
   radius,
@@ -544,16 +478,35 @@ async function run() {
 
     setTimeout(async () => {
       // Render the image
-      const url = '/surfaces/CONTOUREXTERNE.vtp';
-      const {
-        actor: surfaceActor,
-        source,
-        mapper: surfaceMapper,
-        reader,
-      } = await getXML(url);
+      const actorType = 3;
+      let surfaceActor = undefined;
+      let contourActors = undefined;
+      if (actorType === 1) {
+        const url = '/surfaces/CONTOUREXTERNE.vtp';
+        const {
+          actor: surfaceActor,
+          source,
+          mapper: surfaceMapper,
+          reader,
+        } = await getXML(url);
+      } else if (actorType === 2) {
+        surfaceActor = createPolyData(rtData['CONTOUR EXTERNE']);
+      } else if (actorType === 3) {
+        surfaceActor = createPolyDataActors(rtData['CONTOUR EXTERNE']);
+        let index = 0;
+        contourActors = surfaceActor.map((actor) => {
+          index = index + 1;
+          return { uid: 'Actor_' + index, actor };
+        });
+      }
+
       viewportIds.forEach((viewportId) => {
         const viewport = renderingEngine.getViewport(viewportId);
-        viewport.addActor({ uid: 'surfaceData', actor: surfaceActor });
+        if (actorType < 3) {
+          viewport.addActor({ uid: 'surfaceData', actor: surfaceActor });
+        } else {
+          viewport.addActors(contourActors);
+        }
         // Render the image
         viewport.render();
         renderingEngine.render();
