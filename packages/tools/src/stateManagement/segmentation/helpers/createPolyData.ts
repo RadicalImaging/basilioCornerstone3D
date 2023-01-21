@@ -1,6 +1,5 @@
 import vtkPolyData from '@kitware/vtk.js/Common/DataModel/PolyData';
 import vtkCellArray from '@kitware/vtk.js/Common/Core/CellArray';
-import vtkPlane from '@kitware/vtk.js/Common/DataModel/Plane';
 
 import vtkActor from '@kitware/vtk.js/Rendering/Core/Actor';
 import vtkMapper from '@kitware/vtk.js/Rendering/Core/Mapper';
@@ -36,11 +35,18 @@ function createPolyData(ROIContourData, lineWidth = 5) {
 
   const actor = vtkActor.newInstance();
   actor.setMapper(mapper);
+  actor.getProperty().setLineWidth(lineWidth);
+  const color = ROIContourData.colorArray;
+  if (color) {
+    actor
+      .getProperty()
+      .setColor(color[0] / 255.0, color[1] / 255.0, color[2] / 255.0);
+  }
   return actor;
 }
 
-function createPolyDataActors(roiData, lineWidth = 5, color = [1, 1, 1]) {
-  const pointList = roiData.pointsList;
+function createPolyDataActors(ROIContourData, lineWidth = 10) {
+  const pointList = ROIContourData.contourPoints;
   const polygonList = [];
 
   for (let i = 0; i < pointList.length; i++) {
@@ -70,10 +76,16 @@ function createPolyDataActors(roiData, lineWidth = 5, color = [1, 1, 1]) {
     const actor = vtkActor.newInstance();
     actor.setMapper(mapper);
     actor.getProperty().setLineWidth(lineWidth);
-    actor.getProperty().setColor(color[0], color[1], color[2]);
-
+    const color = ROIContourData.colorArray;
+    if (color) {
+      actor
+        .getProperty()
+        .setColor(color[0] / 255.0, color[1] / 255.0, color[2] / 255.0);
+    }
     polygonList.push(actor);
   }
 
   return polygonList;
 }
+
+export { createPolyData, createPolyDataActors };
