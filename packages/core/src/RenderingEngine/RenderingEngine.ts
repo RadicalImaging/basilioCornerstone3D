@@ -25,6 +25,7 @@ import type {
 } from '../types/IViewport';
 import { OrientationAxis } from '../enums';
 import VolumeViewport3D from './VolumeViewport3D';
+import TrameViewport from './trameViewport';
 
 type ViewportDisplayCoords = {
   sxStartDisplayCoords: number;
@@ -789,6 +790,8 @@ class RenderingEngine implements IRenderingEngine {
       viewport = new VolumeViewport(viewportInput);
     } else if (type === ViewportType.VOLUME_3D) {
       viewport = new VolumeViewport3D(viewportInput);
+    } else if (type === ViewportType.TRAME) {
+      viewport = new TrameViewport(viewportInput);
     } else {
       throw new Error(`Viewport Type ${type} is not supported`);
     }

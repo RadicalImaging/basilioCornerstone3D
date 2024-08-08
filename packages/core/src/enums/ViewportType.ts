@@ -17,6 +17,7 @@ enum ViewportType {
   PERSPECTIVE = 'perspective',
   VOLUME_3D = 'volume3d',
   VIDEO = 'video',
+  TRAME = 'trame',
   /**
    * Whole slide imaging viewport
    */
