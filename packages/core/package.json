@@ -35,7 +35,8 @@
     "detect-gpu": "^5.0.22",
     "gl-matrix": "^3.4.3",
     "lodash.clonedeep": "4.5.0",
-    "wslink": "^2.1.1"
+    "wslink": "^2.1.1",
+    "html2canvas": "1.4.1"
   },
   "contributors": [
     {

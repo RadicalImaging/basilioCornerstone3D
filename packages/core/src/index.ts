@@ -1,6 +1,7 @@
 import * as Enums from './enums';
 import * as CONSTANTS from './constants';
 import { Events } from './enums';
+import wslinkConnection from './RenderingEngine/wslink';
 //
 import {
   createVolumeActor,
@@ -156,4 +157,5 @@ export {
   // Geometry Loader
   geometryLoader,
   ProgressiveRetrieveImages,
+  wslinkConnection,
 };

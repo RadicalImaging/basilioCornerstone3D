@@ -37,7 +37,7 @@ setTitleAndDescription(
   'And manipulation tools for a stack viewport'
 );
 
-const size = '500px';
+const size = '300px';
 const content = document.getElementById('content');
 const viewportGrid = document.createElement('div');
 
@@ -58,8 +58,8 @@ const element2 = document.createElement('div');
 element2.oncontextmenu = (e) => e.preventDefault();
 
 element2.id = 'cornerstone-element';
-element2.style.width = '500px';
-element2.style.height = '500px';
+element2.style.width = size;
+element2.style.height = size;
 
 viewportGrid.appendChild(element1);
 viewportGrid.appendChild(element2);

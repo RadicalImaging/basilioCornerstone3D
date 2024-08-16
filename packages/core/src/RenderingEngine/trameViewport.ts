@@ -4,9 +4,8 @@ import wslink from './wslink';
 import vtkRemoteView from '@kitware/vtk.js/Rendering/Misc/RemoteView';
 
 import type { Point3, Point2 } from '../types';
-import viewportTypeToViewportClass from './helpers/viewportTypeToViewportClass';
 
-interface TrameConnection {
+interface RemoteConnection {
   connection;
   viewId;
   viewStream;
@@ -15,7 +14,7 @@ interface TrameConnection {
 }
 
 export default class TrameViewport extends Viewport {
-  trameConnection: TrameConnection;
+  remoteConnection: RemoteConnection;
 
   ////////////////////////////////////////////////////////////////////////////////
   private getWorldToCanvasRatio() {
@@ -79,7 +78,7 @@ export default class TrameViewport extends Viewport {
   };
 
   public getFrameOfReferenceUID = (): string => {
-    return 'TRAME';
+    return 'REMOTE';
   };
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -90,14 +89,14 @@ export default class TrameViewport extends Viewport {
   }
 
   protected configureConnection() {
-    this.trameConnection = {
+    this.remoteConnection = {
       connection: wslink.createClient(),
       viewId: '',
       viewStream: '',
       view: '',
       session: '',
     };
-    this.trameConnection.connection.onConnectionError((httpReq) => {
+    this.remoteConnection.connection.onConnectionError((httpReq) => {
       const message =
         (httpReq && httpReq.response && httpReq.response.error) ||
         `Connection error`;
@@ -106,7 +105,7 @@ export default class TrameViewport extends Viewport {
     });
 
     // Close
-    this.trameConnection.connection.onConnectionClose((httpReq) => {
+    this.remoteConnection.connection.onConnectionClose((httpReq) => {
       const message =
         (httpReq && httpReq.response && httpReq.response.error) ||
         `Connection close`;
@@ -120,36 +119,39 @@ export default class TrameViewport extends Viewport {
     this.configureConnection();
   }
 
-  public connect = (config): void => {
-    this.trameConnection.connection
+  public connect = (config, isTrameConnection = false): void => {
+    this.remoteConnection.connection
       .connect(config)
       .then(async (validClient) => {
-        const remoteObject = await this.trameConnection.connection
-          .getRemote()
-          .Trame.getState();
-        this.trameConnection.viewId = remoteObject.state.viewId || '1';
-        this.trameConnection.viewStream = this.trameConnection.connection
+        let remoteObject = undefined;
+        if (isTrameConnection) {
+          remoteObject = await this.remoteConnection.connection
+            .getRemote()
+            .Trame.getState();
+        }
+        this.remoteConnection.viewId = remoteObject?.state?.viewId || '1';
+        this.remoteConnection.viewStream = this.remoteConnection.connection
           .getImageStream()
-          .createViewStream(this.trameConnection.viewId);
+          .createViewStream(this.remoteConnection.viewId);
 
-        this.trameConnection.view = vtkRemoteView.newInstance({
+        this.remoteConnection.view = vtkRemoteView.newInstance({
           rpcWheelEvent: 'viewport.mouse.zoom.wheel',
-          viewStream: this.trameConnection.viewStream,
+          viewStream: this.remoteConnection.viewStream,
         });
         const session = validClient.getConnection().getSession();
-        this.trameConnection.view.setSession(session);
-        this.trameConnection.view.setContainer(this.element.children[0]);
+        this.remoteConnection.view.setSession(session);
+        this.remoteConnection.view.setContainer(this.element.children[0]);
         // make the canvas from remoteView be the first one canvas
         this.element.children[0].insertBefore(
           this.element.children[0].children[2],
           this.element.children[0].children[0]
         );
-        this.trameConnection.view.setInteractiveRatio(0.7); // the scaled image compared to the clients view resolution
-        this.trameConnection.view.setInteractiveQuality(50); // jpeg quality
+        this.remoteConnection.view.setInteractiveRatio(0.7); // the scaled image compared to the clients view resolution
+        this.remoteConnection.view.setInteractiveQuality(50); // jpeg quality
 
         this.element.addEventListener(
           'resize',
-          this.trameConnection.view.resize
+          this.remoteConnection.view.resize
         );
       })
       .catch((error) => {

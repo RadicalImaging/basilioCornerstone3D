@@ -183,6 +183,7 @@ function mouseDownListener(evt: MouseEvent) {
 
   document.addEventListener('mouseup', _onMouseUp);
   document.addEventListener('mousemove', _onMouseDrag);
+  document.hasMouseMove = true;
 }
 
 /**
@@ -302,6 +303,7 @@ function _onMouseUp(evt: MouseEvent): void {
       doubleClickState.mouseUpEvent = evt;
 
       state.element.addEventListener('mousemove', _onMouseMove);
+      document.hasMouseMove = false;
     } else {
       // this is the second mouse up of a double click!
       _cleanUp();
@@ -341,6 +343,7 @@ function _onMouseUp(evt: MouseEvent): void {
   // the mouse up logic, or we have not even handled the mouse down logic yet
   // - either way no drag should/can occur.
   document.removeEventListener('mousemove', _onMouseDrag);
+  document.hasMouseMove = false;
 }
 
 /**
@@ -434,6 +437,7 @@ function _clearDoubleClickTimeoutAndEvents() {
 
 function _cleanUp() {
   document.removeEventListener('mouseup', _onMouseUp);
+  document.hasMouseMove = false;
   state.element?.removeEventListener('mousemove', _onMouseMove);
 
   // Restore our global mousemove listener
